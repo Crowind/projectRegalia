@@ -19,6 +19,9 @@ public class Movement : MonoBehaviour {
 	private Rigidbody rigidBody;
 	private SphereCollider sphereCollider;
 
+
+	private float sidewaysInput;
+	
 	
 	private void Awake() {
 		player = ReInput.players.GetPlayer(0);
@@ -43,26 +46,32 @@ public class Movement : MonoBehaviour {
 		var input = new Vector3(player.GetAxis("XAxis"), 0, player.GetAxis("YAxis"));
 		Vector3 projInput;
 		Vector3 forwardInput;
-		Vector3 sidewaysInput;
 		if(IsGrounded()) {
 			Transform b = body.transform;
 			float delta = observer.transform.rotation.eulerAngles.y - b.rotation.eulerAngles.y;
 			b.Rotate(b.up,delta);
 			//Calculate the transform based on the body but which faces the direction of the camera
-			projInput = Vector3.ProjectOnPlane(b.TransformDirection(input), b.transform.up);
-			forwardInput = Vector3.Project(projInput, b.forward);
-			sidewaysInput = projInput - forwardInput;
+			projInput = Vector3.ProjectOnPlane(b.TransformDirection(input), b.transform.up); //TODO Solve this shit
+			//forwardInput = Vector3.Project(projInput, body.forward);
+			forwardInput = projInput;
+			forwardInput[0] = 0;
+			forwardInput[1] = 0;
+			//forwardInput[2] = forwardInput[2]>0? forwardInput[2] : 0;
+			sidewaysInput = projInput.x;
+			Debug.Log(sidewaysInput);
 		}
 		else {
 			projInput = 0.01f * Vector3.ProjectOnPlane(observer.transform.TransformVector(input), observer.transform.up);
 			forwardInput = projInput;
-			sidewaysInput = Vector3.zero;;
+			sidewaysInput = 0;;
 		}
 
 		if (rigidBody.velocity.magnitude < maxSpeed) {
 			//rigidBody.AddForce(projInput * (forceAmount * Time.fixedDeltaTime),ForceMode.Acceleration);
 			rigidBody.AddForce(forwardInput * (forceAmount * Time.fixedDeltaTime),ForceMode.Acceleration);
-			rigidBody.AddTorque(0,sidewaysInput.magnitude,0,ForceMode.Acceleration);
+			
+			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + body.transform.right * (sphereCollider.radius * sidewaysInput));
+			
 		}
 		if (rigidBody.velocity.magnitude < Mathf.Epsilon) {
 			rigidBody.velocity = Vector3.zero;
@@ -82,6 +91,10 @@ public class Movement : MonoBehaviour {
 		if(Application.isPlaying) {
 			Gizmos.DrawLine(transform.position, transform.position - body.up.normalized * (sphereCollider.radius + groundSphereCastRadius));
 			Gizmos.DrawWireSphere(transform.position - body.up.normalized * (sphereCollider.radius + groundSphereCastRadius), groundSphereCastRadius );
+			
+			Gizmos.color = Color.green;
+			Gizmos.DrawWireSphere(body.transform.position + body.transform.right * (sidewaysInput * sphereCollider.radius), 0.25f);
+			
 		}
 		
 	}
