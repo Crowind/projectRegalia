@@ -19,9 +19,11 @@ public class Movement : MonoBehaviour {
 	private Rigidbody rigidBody;
 	private SphereCollider sphereCollider;
 
-
-	private float sidewaysInput;
-	
+	private Vector3 input;
+	private Vector3 sidewaysInput;
+	private Vector3 projInput;
+	private Vector3 forwardInput;
+	private Vector3 deltaTilt;
 	
 	private void Awake() {
 		player = ReInput.players.GetPlayer(0);
@@ -36,41 +38,50 @@ public class Movement : MonoBehaviour {
 	}
 
 	private void FixedUpdate() {
+		
+		GetInput();
 		ApplyForces();
 
 	}
 
-	private void ApplyForces() {
-		
+
+	private void GetInput() {
+
 		//Input Force
-		var input = new Vector3(player.GetAxis("XAxis"), 0, player.GetAxis("YAxis"));
-		Vector3 projInput;
-		Vector3 forwardInput;
-		if(IsGrounded()) {
-			Transform b = body.transform;
-			float delta = observer.transform.rotation.eulerAngles.y - b.rotation.eulerAngles.y;
-			b.Rotate(b.up,delta);
-			//Calculate the transform based on the body but which faces the direction of the camera
-			projInput = Vector3.ProjectOnPlane(b.TransformDirection(input), b.transform.up); //TODO Solve this shit
-			//forwardInput = Vector3.Project(projInput, body.forward);
-			forwardInput = projInput;
-			forwardInput[0] = 0;
-			forwardInput[1] = 0;
-			//forwardInput[2] = forwardInput[2]>0? forwardInput[2] : 0;
-			sidewaysInput = projInput.x;
-			Debug.Log(sidewaysInput);
+		input = new Vector3(player.GetAxis("XAxis"), 0, player.GetAxis("YAxis"));
+
+		if (IsGrounded()) {
+			projInput = Vector3.ProjectOnPlane(observer.TransformDirection(input), body.transform.up).normalized;
+			forwardInput = Vector3.Project(projInput, body.transform.forward);
+
+			sidewaysInput = projInput - forwardInput;
+
+
 		}
 		else {
-			projInput = 0.01f * Vector3.ProjectOnPlane(observer.transform.TransformVector(input), observer.transform.up);
-			forwardInput = projInput;
-			sidewaysInput = 0;;
+			projInput = 0.01f * Vector3.ProjectOnPlane(observer.TransformDirection(input), observer.transform.up).normalized;
+			forwardInput = Vector3.Project(projInput, body.transform.forward);
+
+			sidewaysInput = projInput - forwardInput;
 		}
+	}
+
+
+	private void ApplyForces() {
+		
+		
 
 		if (rigidBody.velocity.magnitude < maxSpeed) {
-			//rigidBody.AddForce(projInput * (forceAmount * Time.fixedDeltaTime),ForceMode.Acceleration);
 			rigidBody.AddForce(forwardInput * (forceAmount * Time.fixedDeltaTime),ForceMode.Acceleration);
-			
-			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + body.transform.right * (sphereCollider.radius * sidewaysInput));
+
+			float tiltAmount = 3 * rigidBody.velocity.magnitude / maxSpeed;
+
+			Vector3 dY = -Vector3.up * 0;
+			Vector3 dZ = (forwardInput * (sphereCollider.radius * tiltAmount));
+			Vector3 dX =  (sidewaysInput * (sphereCollider.radius * tiltAmount));
+
+			deltaTilt = dY + dX + dZ;
+			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + dX + dY + dZ);
 			
 		}
 		if (rigidBody.velocity.magnitude < Mathf.Epsilon) {
@@ -93,7 +104,13 @@ public class Movement : MonoBehaviour {
 			Gizmos.DrawWireSphere(transform.position - body.up.normalized * (sphereCollider.radius + groundSphereCastRadius), groundSphereCastRadius );
 			
 			Gizmos.color = Color.green;
-			Gizmos.DrawWireSphere(body.transform.position + body.transform.right * (sidewaysInput * sphereCollider.radius), 0.25f);
+			Gizmos.DrawWireSphere(body.transform.position + deltaTilt, 0.25f);
+			Gizmos.color = new Color(0.5f,0,1);
+			Gizmos.DrawRay(body.transform.position, 3*input);
+			Gizmos.color = Color.yellow;
+			Gizmos.DrawRay(body.transform.position, projInput);
+			Gizmos.color = new Color(1,0.5f,0);
+			Gizmos.DrawRay(body.transform.position, forwardInput);
 			
 		}
 		
