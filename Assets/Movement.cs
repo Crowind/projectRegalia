@@ -49,6 +49,11 @@ public class Movement : MonoBehaviour {
 
 	private void GetInput() {
 
+		
+		Transform b = body.transform;
+		float delta = observer.transform.rotation.eulerAngles.y - b.rotation.eulerAngles.y;
+		b.Rotate(b.up,delta);
+		
 		//Input Force
 		input = new Vector3(player.GetAxis("XAxis"), 0, player.GetAxis("YAxis"));
 
@@ -60,22 +65,25 @@ public class Movement : MonoBehaviour {
 		}
 		forwardInput = Vector3.Project(projInput, body.transform.forward);
 		sidewaysInput = projInput - forwardInput;
+		
+		projInput = Vector3.ProjectOnPlane(b.TransformDirection(input), b.transform.up);
+		
 	}
 
 	private void ApplyForces() {
 
 
 		if (rigidBody.velocity.magnitude < maxSpeed) {
-			rigidBody.AddForce(forwardInput * (forceAmount * Time.fixedDeltaTime), ForceMode.Acceleration);
+			rigidBody.AddForce(projInput * (forceAmount * Time.fixedDeltaTime), ForceMode.Acceleration);
 
-			float tiltAmount = 3 * rigidBody.velocity.magnitude / maxSpeed;
-
-			Vector3 dY = -Vector3.up * 0;
-			Vector3 dZ = (forwardInput * (sphereCollider.radius * tiltAmount));
-			Vector3 dX = (sidewaysInput * (sphereCollider.radius * tiltAmount * tiltMultiplier));
-
-			deltaTilt = dY + dX + dZ;
-			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + dX + dY + dZ);
+			// float tiltAmount = 3 * rigidBody.velocity.magnitude / maxSpeed;
+			//
+			// Vector3 dY = -Vector3.up * 0;
+			// Vector3 dZ = (forwardInput * (sphereCollider.radius * tiltAmount));
+			// Vector3 dX = (sidewaysInput * (sphereCollider.radius * tiltAmount * tiltMultiplier));
+			//
+			// deltaTilt = dY + dX + dZ;
+			// rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + dX + dY + dZ);
 
 		}
 		if (rigidBody.velocity.magnitude < Mathf.Epsilon) {
