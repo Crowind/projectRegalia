@@ -66,16 +66,14 @@ public class Movement : MonoBehaviour {
 
 
 		if (rigidBody.velocity.magnitude < maxSpeed) {
-			rigidBody.AddForce(forwardInput * (forceAmount * Time.fixedDeltaTime), ForceMode.Acceleration);
+			rigidBody.AddForce(forwardInput.normalized * (forceAmount * Time.fixedDeltaTime), ForceMode.Acceleration);
 
-			float tiltAmount = 3 * rigidBody.velocity.magnitude / maxSpeed;
+			float tiltAmount = 3;//* rigidBody.velocity.magnitude / maxSpeed;
 
-			Vector3 dY = -Vector3.up * 0;
-			Vector3 dZ = (forwardInput * (sphereCollider.radius * tiltAmount));
 			Vector3 dX = (sidewaysInput * (sphereCollider.radius * tiltAmount * tiltMultiplier));
 
-			deltaTilt = dY + dX + dZ;
-			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + dX + dY + dZ);
+			deltaTilt = dX ;
+			rigidBody.centerOfMass = transform.InverseTransformPoint(body.transform.position + dX );
 
 		}
 		if (rigidBody.velocity.magnitude < Mathf.Epsilon) {
